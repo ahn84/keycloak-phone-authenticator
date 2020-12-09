@@ -85,7 +85,9 @@ public class VerificationCodeResource {
         try {
             session.getProvider(SmsService.class).sendVerificationCode(vc, params);
         }
-        catch (SmsException e) {
+        catch (NullPointerException nullExc) {
+            log.info("No SMS provider: " + vc.getCode());
+        } catch (SmsException e) {
             log.error(e.getMessage());
         }
         return Response.noContent().build();

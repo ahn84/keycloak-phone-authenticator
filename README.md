@@ -39,10 +39,8 @@ Once you add an SMS SPI implementation, you can request a verification code with
 ```
 curl -X POST \
   http://127.0.0.1:8081/auth/realms/$YOUR_REALM/verification_codes/ \
-  -H 'content-type: application/json' \
-  -d '{
-	"phoneNumber": $PHONE_NUMBER
-}'
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  --data-urlencode "phoneNumber=$PHONE_NUMBER"
 ```
 
 And then use `Verification Code` authentication flow with the code to obtain an access code.
@@ -54,6 +52,8 @@ curl -X POST \
   -H 'content-type: application/x-www-form-urlencoded' \
   -d 'grant_type=password&phone_number=$PHONE_NUMBER&code=$VERIFICATION_CODE'
 ```
+
+You have to [register using Modules](https://www.keycloak.org/docs/11.0/server_development/index.html#register-a-provider-using-modules) because as of Keycloak 11.0.3 custom SPI providers [are not loaded](https://keycloak.discourse.group/t/not-able-to-register-a-custom-spi/1099/17) with Keycloak Deployer.
 
 ## Configuration
 

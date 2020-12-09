@@ -10,6 +10,7 @@ import org.keycloak.models.UserModel;
 
 import javax.ws.rs.core.Response;
 import java.util.List;
+import java.util.Optional;
 
 public class PhoneNumberAuthenticator extends BaseDirectGrantAuthenticator {
 
@@ -23,26 +24,24 @@ public class PhoneNumberAuthenticator extends BaseDirectGrantAuthenticator {
         user.addRequiredAction("PHONE_NUMBER_GRANT_CONFIG");
     }
 
-    protected UserModel findUser(AuthenticationFlowContext context) {
-        List<UserModel> users = context.getSession().users().searchForUserByUserAttribute(
-                "phoneNumber", context.getHttpRequest().getDecodedFormParameters().getFirst("phone_number"), context.getRealm());
-        if (users.isEmpty()) {
-            return null;
-        }
-        return users.get(0);
-    }
-
     @Override
     public void authenticate(AuthenticationFlowContext context) {
-        UserModel user = findUser(context);
-        if (user == null) {
+        String phoneNumber = Optional.ofNullable(context.getHttpRequest().getDecodedFormParameters().getFirst("phone_number")).orElse(
+                context.getHttpRequest().getDecodedFormParameters().getFirst("phoneNumber"));
+        if (phoneNumber == null || phoneNumber.isEmpty()) {
+            context.attempted();
+            return;
+        }
+        List<UserModel> users = context.getSession().users().searchForUserByUserAttribute(
+                "phoneNumber", phoneNumber, context.getRealm());
+        if (users.isEmpty()) {
             context.getEvent().error(Errors.INVALID_USER_CREDENTIALS);
             Response challenge = errorResponse(Response.Status.UNAUTHORIZED.getStatusCode(), "invalid_grant", "Invalid user credentials");
             context.failure(AuthenticationFlowError.INVALID_USER, challenge);
             return;
         }
 
-        context.setUser(user);
+        context.setUser(users.get(0));
         context.success();
     }
 }

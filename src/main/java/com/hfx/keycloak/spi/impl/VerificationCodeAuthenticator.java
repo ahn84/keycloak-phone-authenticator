@@ -51,7 +51,12 @@ public class VerificationCodeAuthenticator extends BaseDirectGrantAuthenticator 
 
     @Override
     public void authenticate(AuthenticationFlowContext context) {
-        if (!validateVerificationCode(context)) {
+        Boolean result = validateVerificationCode(context);
+        if (result == null) {
+            context.attempted();
+            return;
+        }
+        if (!result) {
             context.getEvent().user(context.getUser());
             context.getEvent().error(Errors.INVALID_USER_CREDENTIALS);
 
@@ -63,11 +68,14 @@ public class VerificationCodeAuthenticator extends BaseDirectGrantAuthenticator 
         context.success();
     }
 
-    private boolean validateVerificationCode(AuthenticationFlowContext context) {
+    private Boolean validateVerificationCode(AuthenticationFlowContext context) {
         String phoneNumber = Optional.ofNullable(context.getHttpRequest().getDecodedFormParameters().getFirst("phone_number")).orElse(
                 context.getHttpRequest().getDecodedFormParameters().getFirst("phoneNumber"));
+        if (phoneNumber == null || phoneNumber.isEmpty()) {
+            return null;
+        }
         String code = context.getHttpRequest().getDecodedFormParameters().getFirst("code");
-        String kind = null;
+        String kind = "";
         AuthenticatorConfigModel authenticatorConfig = context.getAuthenticatorConfig();
         if (authenticatorConfig != null && authenticatorConfig.getConfig() != null) {
             kind = Optional.ofNullable(context.getAuthenticatorConfig().getConfig().get(KIND)).orElse("");
@@ -82,11 +90,11 @@ public class VerificationCodeAuthenticator extends BaseDirectGrantAuthenticator 
                     .setParameter("kind", kind)
                     .getSingleResult();
             if (veriCode == 1) {
-                return true;
+                return Boolean.TRUE;
             }
         }
         catch (NoResultException err){ }
-        return false;
+        return Boolean.FALSE;
     }
 
 }
